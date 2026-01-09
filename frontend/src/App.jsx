@@ -14,22 +14,10 @@ import {
  * CONFIGURATION & MOCK DATA
  * ==========================================
  */
-// Using a safe access pattern to avoid esbuild warnings in legacy target environments
-const getEnvUrl = () => {
-    try {
-        // @ts-ignore
-        const env = import.meta.env;
-        return env?.VITE_API_URL || "http://localhost:5000";
-    } catch (e) {
-        return "http://localhost:5000";
-    }
-};
-
-const rawBase = getEnvUrl();
-const API_BASE = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const API_URL = `${API_BASE}/api`; 
-const LOGO_URL = "Logo.png"; 
-const HERO_BG = "ranghar.jpg"; 
+const LOGO_URL = "Logo.png"; // Placeholder Logo
+const HERO_BG = "ranghar.jpg"; // Reliable Wikimedia Link
 
 const CATEGORIES = [
   { id: 'all', label: 'ALL ARCHIVES', icon: Book, labelAs: "সকলো তথ্য", labelHi: "सभी अभिलेखागार" },
@@ -37,7 +25,7 @@ const CATEGORIES = [
   { id: 'wars', label: 'BATTLES', icon: Sword, labelAs: "যুদ্ধ আৰু সামৰিক", labelHi: "युद्ध और सैन्य" },
   { id: 'architecture', label: 'MONUMENTS', icon: Landmark, labelAs: "স্থাপত্য আৰু দুৰ্গ", labelHi: "वास्तुकला और किले" },
   { id: 'people', label: 'FIGURES', icon: User, labelAs: "প্ৰখ্যাত ব্যক্তি", labelHi: "प्रमुख व्यक्ति" },
-  { id: 'culture', label: 'CULTURE', icon: Scroll, labelAs: "সংস্কৃতি আৰু পৰম্পৰা", labelHi: "সংস্কৃতি আৰু পৰম্পৰা" },
+  { id: 'culture', label: 'CULTURE', icon: Scroll, labelAs: "সংস্কৃতি আৰু পৰম্পৰা", labelHi: "संस्कृति और परंपरा" },
 ];
 
 const QUIZ_QUESTIONS = [
@@ -48,6 +36,7 @@ const QUIZ_QUESTIONS = [
   { id: 5, question: "Where was the first capital of the Ahom Kingdom established?", options: ["Garhgaon", "Rangpur", "Jorhat", "Charaideo"], correct: 3 }
 ];
 
+// Fallback content if database is empty or offline
 const INITIAL_CMS = {
     about: {
         title: "About Project",
@@ -113,6 +102,11 @@ const MOCK_RESOURCES = [
   { id: 2, title: "Architecture of Rangpur", author: "ASI Report 1998", type: "Official Report", url: "#" },
 ];
 
+/**
+ * ==========================================
+ * TRANSLATIONS (Manual Keys)
+ * ==========================================
+ */
 const TRANSLATIONS = {
   en: {
     appTitle: "Sibsagar Digital",
@@ -290,7 +284,7 @@ const TRANSLATIONS = {
     messages: "ইনবক্স",
     stats: "পৰ্যবেক্ষণ",
     sectionHeader: "শিৰোনাম",
-    sectionText: "বিষয়বস্ত...",
+    sectionText: "বিষয়বস্তু...",
     sectionImg: "ছবি লিংক (ঐচ্ছিক)",
     sectionCap: "ছবিৰ বিৱৰণ",
     uploadPdf: "PDF আপলোড কৰক",
@@ -395,6 +389,11 @@ const TRANSLATIONS = {
   }
 };
 
+/**
+ * ==========================================
+ * COMPONENT: Timeline Item
+ * ==========================================
+ */
 const TimelineItem = ({ item, isDarkMode, onClick }) => (
   <div onClick={onClick} className="relative mb-10 ml-6 cursor-pointer group animate-in slide-in-from-right duration-500">
     <div className={`absolute -left-[41px] flex items-center justify-center w-8 h-8 rounded-full ring-4 ${isDarkMode ? 'bg-stone-800 ring-stone-900 text-amber-500' : 'bg-amber-100 ring-stone-50 text-amber-600'}`}>
@@ -413,6 +412,11 @@ const TimelineItem = ({ item, isDarkMode, onClick }) => (
   </div>
 );
 
+/**
+ * ==========================================
+ * MAIN COMPONENT
+ * ==========================================
+ */
 const App = () => {
   const [view, setView] = useState('grid'); 
   const [activeCategory, setActiveCategory] = useState('all');
@@ -424,19 +428,23 @@ const App = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lang, setLang] = useState('en'); 
   
+  // Data States - Populated via API
   const [dbItems, setDbItems] = useState([]);
   const [resources, setResources] = useState([]);
   
+  // Connection Status
   const [backendOnline, setBackendOnline] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [cmsContent, setCmsContent] = useState(INITIAL_CMS);
 
+  // Auth States
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [isAdminMode, setIsAdminMode] = useState(!!localStorage.getItem('token'));
   const [loginError, setLoginError] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  // UI States
   const [fontSize, setFontSize] = useState(16);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -444,6 +452,7 @@ const App = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
   
+  // Forms
   const [newItem, setNewItem] = useState({ 
       title: '', category: 'kings', year: '', summary: '', image: '', 
       content: [{ header: '', text: '', image: '', caption: '' }], 
@@ -454,9 +463,11 @@ const App = () => {
   const [editingCms, setEditingCms] = useState(null); 
   const [tempCmsText, setTempCmsText] = useState('');
 
+  // Comments & Inbox
   const [comments, setComments] = useState({}); 
   const [newComment, setNewComment] = useState('');
   
+  // Quiz State
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
   const [showQuizResult, setShowQuizResult] = useState(false);
@@ -464,6 +475,7 @@ const App = () => {
 
   const t = (key) => TRANSLATIONS[lang][key] || TRANSLATIONS['en'][key];
 
+  // Theme Config
   const theme = isDarkMode ? {
     bg: "bg-stone-950",
     sidebar: "bg-stone-900 border-stone-800",
@@ -503,16 +515,15 @@ const App = () => {
   const fetchItems = async () => {
       setIsLoading(true);
       try {
-          console.log(`Fetching from: ${API_URL}/items`);
           const res = await fetch(`${API_URL}/items`);
-          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          if (!res.ok) throw new Error("Server error");
           const data = await res.json();
           setDbItems(data);
           setBackendOnline(true);
       } catch (err) {
-          console.error("Backend Error:", err);
+          console.log("Using Mock Data (Backend Offline)");
           setBackendOnline(false);
-          setDbItems(MOCK_ITEMS); 
+          setDbItems(MOCK_ITEMS); // FALLBACK TO MOCK DATA
       } finally {
           setIsLoading(false);
       }
@@ -542,6 +553,7 @@ const App = () => {
           }
       } catch (err) {
           console.log("Using Mock Pages");
+          // Initial CMS is already set as default
       }
   };
 
@@ -550,15 +562,12 @@ const App = () => {
       fetchResources();
       fetchPages();
 
-      // @ts-ignore
+      // Initialize Google Translate Script safely
       window.googleTranslateElementInit = () => {
-        // @ts-ignore
         if(window.google && window.google.translate) {
-            // @ts-ignore
             new window.google.translate.TranslateElement({
             pageLanguage: 'en',
-            includedLanguages: 'en,hi,as', 
-            // @ts-ignore
+            includedLanguages: 'en,hi,as', // English, Hindi, Assamese
             layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
             autoDisplay: false
             }, 'google_translate_element');
@@ -572,20 +581,24 @@ const App = () => {
       document.body.appendChild(script);
 
       return () => {
+        // Cleanup if necessary
       }
   }, []);
 
   const changeLanguage = (languageCode) => {
     setLang(languageCode);
     const date = new Date();
-    date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000)); 
+    date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+    // Set the cookie that Google Translate looks for
     document.cookie = `googtrans=/en/${languageCode}; expires=${date.toUTCString()}; path=/`;
     document.cookie = `googtrans=/en/${languageCode}; expires=${date.toUTCString()}; path=/domain`;
-    window.location.reload(); 
+    window.location.reload(); // Reload to apply translation
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // DEMO BACKDOOR FOR PREVIEW
     if (username === 'admin' && password === 'admin') {
         localStorage.setItem('token', 'demo-token'); 
         setToken('demo-token');
@@ -626,6 +639,7 @@ const App = () => {
 
   const handleSaveItem = async (e) => {
       e.preventDefault();
+      // Demo Mode Handling
       if (!backendOnline) {
           const newItemWithId = { ...newItem, id: Date.now() };
           setDbItems(prev => [newItemWithId, ...prev]);
@@ -712,10 +726,11 @@ const App = () => {
       } catch (err) { alert(err.message); }
   };
 
+  // Convert File to Base64 for database storage (simulating file upload)
   const handleFileUpload = (e) => {
       const file = e.target.files[0];
       if (file) {
-          if (file.size > 500000) { 
+          if (file.size > 500000) { // Limit to 500KB to avoid crashing local db
               alert("File is too large for the demo database. Please provide a URL instead.");
               return;
           }
@@ -750,6 +765,7 @@ const App = () => {
       }
 
       try {
+          // Construct the payload based on what backend expects
           const payload = { ...cmsContent[key], text: tempCmsText };
           
           const res = await fetch(`${API_URL}/pages`, {
@@ -877,6 +893,7 @@ const App = () => {
   return (
     <div className={`flex h-screen ${theme.bg} ${theme.text} font-sans overflow-hidden transition-colors duration-300 ${lang === 'as' ? 'lang-as' : (lang === 'hi' ? 'lang-hi' : '')}`}>
       
+      {/* GLOBAL STYLES & GOOGLE TRANSLATE HACK */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Bengali:wght@400;700&display=swap');
         
@@ -884,6 +901,12 @@ const App = () => {
             font-family: 'Noto Serif', 'Noto Serif Bengali', serif !important;
         }
 
+        /* * =========================================
+         * HIDDEN GOOGLE TRANSLATE STYLES
+         * =========================================
+         */
+        
+        /* Hide the top banner frame completely - targeting iframe specifically */
         .goog-te-banner-frame.skiptranslate, 
         .goog-te-banner-frame, 
         iframe.goog-te-banner-frame {
@@ -897,16 +920,19 @@ const App = () => {
             z-index: -1000 !important;
         } 
         
+        /* Reset body top property forced by Google */
         body {
             top: 0px !important; 
             position: static !important;
             margin-top: 0px !important;
         }
         
+        /* Hide the element itself */
         #google_translate_element {
             display: none;
         }
         
+        /* Hide tooltips and popups on hover */
         .goog-tooltip, 
         #goog-gt-tt, 
         .goog-te-balloon-frame {
@@ -920,11 +946,13 @@ const App = () => {
             box-shadow: none !important;
         }
 
+        /* Specific fix for the top margin issue sometimes caused by the script */
         font {
             background-color: transparent !important;
             box-shadow: none !important;
         }
 
+        /* Sidebar scrollbar styles for cleaner look */
         .sidebar-scroll::-webkit-scrollbar {
           width: 6px;
         }
@@ -937,8 +965,10 @@ const App = () => {
         }
       `}</style>
       
+      {/* Hidden Translate Element */}
       <div id="google_translate_element"></div>
 
+      {/* Lightbox */}
       {lightboxImg && (
           <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-300" onClick={() => setLightboxImg(null)}>
               <img src={lightboxImg} alt="Fullscreen" className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" />
@@ -946,6 +976,7 @@ const App = () => {
           </div>
       )}
       
+      {/* Sidebar Navigation */}
       <aside className={`fixed md:static inset-y-0 left-0 w-72 ${theme.sidebar} border-r z-40 flex flex-col shadow-xl md:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform`}>
         <div className={`p-6 border-b ${theme.sidebarHeader} flex flex-col gap-2 ${theme.divider}`}>
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setView('grid'); setActiveArticleId(null); }}>
@@ -991,6 +1022,7 @@ const App = () => {
           ))}
 
           <div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ml-2 mt-4 ${theme.textMuted}`}>{t('info')}</div>
+          {/* NEW SIDEBAR LINKS */}
           <button onClick={() => { setView('about'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-bold uppercase tracking-wide transition-colors ${view === 'about' ? theme.activeNav : theme.inactiveNav}`}>
               <Info className="w-4 h-4" /> {t('aboutProject')}
           </button>
@@ -1009,6 +1041,7 @@ const App = () => {
         </nav>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative print-full-width">
         <header className={`h-16 border-b backdrop-blur-md flex items-center px-4 md:px-8 justify-between shrink-0 z-10 sticky top-0 ${theme.header} ${theme.divider}`}>
           <div className="flex items-center gap-4 w-full">
@@ -1027,6 +1060,7 @@ const App = () => {
                     <span className={`px-2 text-xs font-bold ${theme.text}`}><Type className="w-3 h-3 inline mr-1" />{fontSize}</span>
                     <button onClick={() => setFontSize(s => Math.min(24, s + 2))} className={`px-2 py-1 hover:bg-stone-200 dark:hover:bg-stone-700 text-xs ${theme.text}`}><PlusCircle className="w-3 h-3" /></button>
                 </div>
+                {/* Updated Language Switcher triggers Google Translate */}
                 <div className={`flex items-center border rounded overflow-hidden ${theme.divider} notranslate`}>
                     <button onClick={() => changeLanguage('en')} className={`px-3 py-1 text-xs font-bold ${lang === 'en' ? 'bg-amber-600 text-white' : `hover:bg-stone-200 ${theme.text}`}`}>EN</button>
                     <button onClick={() => changeLanguage('hi')} className={`px-3 py-1 text-xs font-bold ${lang === 'hi' ? 'bg-amber-600 text-white' : `hover:bg-stone-200 ${theme.text}`}`}>HI</button>
@@ -1038,6 +1072,8 @@ const App = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto scroll-smooth p-0">
+            
+            {/* CONNECTION ERROR STATE - MODIFIED FOR DEMO MODE */}
             {!backendOnline && !isLoading && (
                 <div className="w-full bg-orange-50 border-b border-orange-200 p-2 text-center text-xs text-orange-800 font-bold flex items-center justify-center gap-2">
                     <WifiOff className="w-3 h-3" />
@@ -1045,14 +1081,17 @@ const App = () => {
                 </div>
             )}
 
+            {/* LOADING STATE */}
             {isLoading && (
                 <div className="flex items-center justify-center h-full">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
                 </div>
             )}
 
+            {/* MAIN VIEWS (Show regardless of backend online status now) */}
             {!isLoading && (
                 <>
+                    {/* ADMIN DASHBOARD */}
                     {view === 'admin' && token ? (
                         <div className="max-w-7xl mx-auto p-6 md:p-12 animate-in fade-in duration-300">
                             <div className="flex justify-between items-center mb-8">
@@ -1144,6 +1183,8 @@ const App = () => {
                                 </div>
                              )}
                         </div>
+                    
+                    /* LOGIN SCREEN */
                     ) : view === 'login' ? (
                         <div className="flex items-center justify-center h-full animate-in fade-in zoom-in-95 duration-300 p-4">
                             <div className={`max-w-md w-full p-8 rounded-xl shadow-2xl border ${theme.card}`}>
@@ -1170,8 +1211,10 @@ const App = () => {
                             </div>
                         </div>
 
+                    /* SINGLE ARTICLE VIEW */
                     ) : view === 'article' && activeArticle ? (
                         <article className="max-w-6xl mx-auto p-6 md:p-10 animate-in fade-in slide-in-from-bottom-4 duration-500 print-full-width">
+                            {/* Share Modal */}
                             {showShareModal && (
                                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 no-print">
                                     <div className={`w-full max-w-sm p-6 rounded-xl shadow-2xl border ${theme.card} relative`}>
@@ -1239,6 +1282,7 @@ const App = () => {
                                         </section>
                                     ))}
 
+                                    {/* Comments Section */}
                                     <div className={`mt-12 p-6 rounded-xl border ${theme.divider} ${isDarkMode ? 'bg-stone-900/50' : 'bg-stone-100/50'} no-print`}>
                                         <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${theme.text}`}><MessageSquare className="w-5 h-5" /> {t('comments')}</h3>
                                         <div className="space-y-4 mb-6">
@@ -1305,6 +1349,7 @@ const App = () => {
                             </div>
                         </article>
 
+                    /* MAP VIEW */
                     ) : view === 'map' ? (
                         <div className={`h-full flex flex-col relative overflow-hidden ${isDarkMode ? 'bg-stone-900' : 'bg-stone-200'}`}>
                             <iframe 
@@ -1323,6 +1368,7 @@ const App = () => {
                             </div>
                         </div>
 
+                    /* TIMELINE VIEW */
                     ) : view === 'timeline' ? (
                         <div className="max-w-4xl mx-auto p-6 md:p-12 animate-in fade-in duration-500">
                             <div className="text-center mb-12">
@@ -1339,6 +1385,7 @@ const App = () => {
                             </div>
                         </div>
 
+                    /* TREE VIEW */
 ) : view === 'tree' ? (
     <div className="max-w-5xl mx-auto p-6 md:p-12 animate-in fade-in duration-500">
         <div className="text-center mb-16">
@@ -1350,6 +1397,7 @@ const App = () => {
                 <div key={king.id} className="flex flex-col items-center group relative w-full">
                     {index > 0 && <div className={`h-8 w-0.5 ${isDarkMode ? 'bg-amber-800' : 'bg-amber-300'}`}></div>}
                     
+                    {/* FIXED: Added spaces between classes and removed 'overflow-hiddentransition-all' merge */}
                     <div 
                         onClick={() => { setActiveArticleId(king.id); setView('article'); }} 
                         className={`relative p-4 rounded-lg border-2 w-full max-w-md cursor-pointer overflow-hidden transition-all hover:scale-105 hover:shadow-lg ${isDarkMode ? 'bg-stone-900 border-amber-900/50 hover:border-amber-500' : 'bg-white border-amber-200 hover:border-amber-500 shadow-sm'}`}
@@ -1359,18 +1407,22 @@ const App = () => {
                                 <Crown className="w-6 h-6" />
                             </div>
                             
+                            {/* FIXED: Added min-w-0 to the container to allow truncation/wrapping to work inside Flex */}
                             <div className="flex-1 min-w-0">
                                 <div className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${theme.accent}`}>
                                     {king.year} CE
                                 </div>
+                                {/* FIXED: Added break-words to handle very long titles */}
                                 <h3 className={`font-bold font-serif text-lg break-words ${theme.text}`}>
                                     {king.title}
                                 </h3>
+                                {/* FIXED: Ensure truncate works by having a defined width via min-w-0 on parent */}
                                 <p className={`text-xs truncate ${theme.textMuted}`}>
                                     {king.summary}
                                 </p>
                             </div>
                             
+                            {/* FIXED: Removed the broken 'overflow-hidden text-wrap' from className string */}
                             <ChevronRight className={`w-5 h-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${theme.textMuted}`} />
                         </div>
                     </div>
@@ -1383,6 +1435,7 @@ const App = () => {
         </div>
     </div>
 
+                    /* QUIZ VIEW */
                     ) : view === 'quiz' ? (
                         <div className="max-w-3xl mx-auto p-6 md:p-12 animate-in fade-in zoom-in-95 duration-500 h-full flex flex-col justify-center">
                             {!showQuizResult ? (
@@ -1419,6 +1472,7 @@ const App = () => {
                             )}
                         </div>
 
+                    /* GALLERY VIEW */
                     ) : view === 'gallery' ? (
                         <div className="max-w-7xl mx-auto p-6 md:p-12 animate-in fade-in duration-500">
                             <div className="text-center mb-12">
@@ -1438,14 +1492,17 @@ const App = () => {
                             </div>
                         </div>
 
+                    /* RESEARCH / SPEECH / DISTRICT PAGES */
                     ) : view === 'about' || view === 'speech' || view === 'district' ? (
                         <InfoPage pageKey={view} icon={view === 'about' ? Info : view === 'speech' ? Building2 : FileText} />
                     
+                    /* RESEARCH PAGE (SPECIFIC) */
                     ) : view === 'research' ? (
     <div className="max-w-7xl mx-auto p-6 md:p-12 animate-in fade-in duration-500">
         <h2 className={`text-3xl font-serif font-bold mb-8 ${theme.text}`}>{t('research')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
+            {/* ACADEMIC PAPERS SECTION */}
             <div className={`p-6 rounded-xl border shadow-sm ${theme.card}`}>
                 <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${theme.text}`}><GraduationCap className="w-6 h-6 text-amber-600" /> Academic Papers</h3>
                 <ul className="space-y-4">
@@ -1460,6 +1517,7 @@ const App = () => {
                                     </a>
                                 )}
                             </div>
+                            {/* Updated Download Link */}
                             {paper.url && (
                                 <a 
                                     href={paper.url} 
@@ -1475,6 +1533,7 @@ const App = () => {
                 </ul>
             </div>
 
+            {/* OFFICIAL REPORTS SECTION */}
             <div className={`p-6 rounded-xl border shadow-sm ${theme.card}`}>
                 <h3 className={`text-xl font-bold mb-4 flex items-center gap-2 ${theme.text}`}><Building2 className="w-6 h-6 text-amber-600" /> Official Reports</h3>
                 <ul className="space-y-4">
@@ -1489,6 +1548,7 @@ const App = () => {
                                     </a>
                                 )}
                             </div>
+                            {/* Updated Download Link */}
                             {paper.url && (
                                 <a 
                                     href={paper.url} 
@@ -1507,8 +1567,10 @@ const App = () => {
     </div>
 
 
+                    /* GRID VIEW (DEFAULT) */
                     ) : (
                         <div className="animate-in fade-in duration-500 pb-12">
+                             {/* Only show Hero on 'all' view without search */}
                             {activeCategory === 'all' && !searchQuery && (
                                 <div className="relative py-20 px-6 md:px-12 mb-8 overflow-hidden">
                                     <div className="absolute inset-0 z-0">
@@ -1559,6 +1621,7 @@ const App = () => {
             )}
         </div>
         
+        {/* ADD ITEM MODAL */}
         {showAddModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <div className={`w-full max-w-4xl p-8 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ${theme.card} animate-in zoom-in-95 duration-200`}>
@@ -1638,6 +1701,7 @@ const App = () => {
             </div>
         )}
 
+        {/* RESOURCE UPLOAD MODAL */}
         {showResourceModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <div className={`w-full max-w-md p-8 rounded-2xl shadow-2xl ${theme.card} animate-in zoom-in-95 duration-200`}>
@@ -1693,6 +1757,7 @@ const App = () => {
             </div>
         )}
 
+        {/* CMS Editor Modal */}
         {editingCms && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                 <div className={`w-full max-w-3xl p-6 rounded-xl shadow-2xl border ${theme.card} flex flex-col h-[80vh]`}>
@@ -1706,6 +1771,7 @@ const App = () => {
             </div>
         )}
 
+        {/* Compact Footer */}
             <footer className={`border-t mt-auto py-6 no-print notranslate ${isDarkMode ? 'bg-stone-950 border-stone-800' : 'bg-stone-100 border-stone-200'}`}>
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3">
