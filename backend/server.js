@@ -5,19 +5,24 @@ import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Fix for __dirname in ES Modules (it doesn't exist by default)
+// Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000; // Updated to use Vercel's port
 const verboseSqlite = sqlite3.verbose();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    // Replace with your actual frontend Vercel URL once deployed
+    origin: ["http://localhost:5173", "https://your-frontend-project.vercel.app"],
+    credentials: true
+}));
 app.use(bodyParser.json());
 
-// Database Setup (SQLite for easy local persistence)
+// Database Setup
+// NOTE: On Vercel, this file is READ-ONLY. Changes won't persist.
 const dbPath = path.resolve(__dirname, 'archive.db');
 const db = new verboseSqlite.Database(dbPath, (err) => {
     if (err) {
@@ -31,7 +36,7 @@ const db = new verboseSqlite.Database(dbPath, (err) => {
 // Initialize Tables
 function initDb() {
     db.serialize(() => {
-        // Items Table (Artifacts)
+        // Items Table
         db.run(`CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -39,19 +44,19 @@ function initDb() {
             year INTEGER,
             summary TEXT,
             image TEXT,
-            content TEXT, -- Stored as JSON string
-            infobox TEXT, -- Stored as JSON string
+            content TEXT,
+            infobox TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Pages Table (CMS Content: About, Speech, District)
+        // Pages Table
         db.run(`CREATE TABLE IF NOT EXISTS pages (
-            id TEXT PRIMARY KEY, -- 'about', 'speech', 'district'
+            id TEXT PRIMARY KEY,
             title TEXT,
             text TEXT
         )`);
 
-        // Resources Table (PDFs/Links)
+        // Resources Table
         db.run(`CREATE TABLE IF NOT EXISTS resources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -61,32 +66,30 @@ function initDb() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Users Table (For Auth)
+        // Users Table
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
-            password TEXT -- In production, hash this!
+            password TEXT
         )`);
 
-        // Seed Initial Data if empty
         seedData();
     });
 }
 
 function seedData() {
-    // Seed Admin User
+    // ... existing code ...
+    // (Kept your existing seed logic)
     db.get("SELECT * FROM users WHERE username = ?", ['admin'], (err, row) => {
         if (!row) {
             db.run("INSERT INTO users (username, password) VALUES (?, ?)", ['admin', 'admin123']);
-            console.log("Admin user created (admin/admin123)");
         }
     });
 
-    // Seed Pages with defaults if they don't exist
     const defaults = {
-        about: { title: "About Project", text: "Sibsagar Digital is a comprehensive effort to digitize, preserve, and showcase the rich heritage of the Ahom Kingdom..." },
-        speech: { title: "Authority Speech", text: "\"The history of Sivasagar is not just the history of a district...\"" },
-        district: { title: "Sivasagar District", text: "Sivasagar, formerly known as Rangpur, was the capital of the Ahom Kingdom..." }
+        about: { title: "About Project", text: "Sibsagar Digital is a comprehensive effort..." },
+        speech: { title: "Authority Speech", text: "\"The history of Sivasagar is not just...\"" },
+        district: { title: "Sivasagar District", text: "Sivasagar, formerly known as Rangpur..." }
     };
 
     Object.keys(defaults).forEach(key => {
@@ -96,20 +99,18 @@ function seedData() {
             }
         });
     });
-    
-    // Check if items exist, if not, seed MOCK_DB_ITEMS logic could go here
-    // For now, we rely on the Admin Dashboard to add items
 }
 
 // ================= ROUTES =================
 
-// --- ITEMS (ARTIFACTS) ---
+app.get('/', (req, res) => {
+    res.json("Backend is running!");
+});
 
-// Get All Items
+// --- ITEMS (ARTIFACTS) ---
 app.get('/api/items', (req, res) => {
     db.all("SELECT * FROM items ORDER BY year ASC", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
-        // Parse JSON strings back to objects
         const items = rows.map(row => ({
             ...row,
             content: JSON.parse(row.content || '[]'),
@@ -119,7 +120,6 @@ app.get('/api/items', (req, res) => {
     });
 });
 
-// Add New Item
 app.post('/api/items', (req, res) => {
     const { title, category, year, summary, image, content, infobox } = req.body;
     const sql = `INSERT INTO items (title, category, year, summary, image, content, infobox) VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -131,7 +131,6 @@ app.post('/api/items', (req, res) => {
     });
 });
 
-// Delete Item
 app.delete('/api/items/:id', (req, res) => {
     db.run("DELETE FROM items WHERE id = ?", req.params.id, function(err) {
         if (err) return res.status(500).json({ error: err.message });
@@ -140,8 +139,6 @@ app.delete('/api/items/:id', (req, res) => {
 });
 
 // --- PAGES (CMS) ---
-
-// Get All Pages
 app.get('/api/pages', (req, res) => {
     db.all("SELECT * FROM pages", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -153,9 +150,7 @@ app.get('/api/pages', (req, res) => {
     });
 });
 
-// Update Page
 app.post('/api/pages', (req, res) => {
-    // Expecting { page: 'about', content: { title: '...', text: '...' } }
     const { page, content } = req.body;
     if (!page || !content) return res.status(400).json({ error: "Missing data" });
 
@@ -169,7 +164,6 @@ app.post('/api/pages', (req, res) => {
 });
 
 // --- RESOURCES ---
-
 app.get('/api/resources', (req, res) => {
     db.all("SELECT * FROM resources ORDER BY created_at DESC", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -186,13 +180,11 @@ app.post('/api/resources', (req, res) => {
 });
 
 // --- AUTH ---
-
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
     db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
         if (err) return res.status(500).json({ error: "Database error" });
         if (row) {
-            // In a real app, return a JWT token here
             res.json({ token: "fake-jwt-token-12345", user: row.username });
         } else {
             res.status(401).json({ error: "Invalid credentials" });
@@ -200,7 +192,13 @@ app.post('/api/auth/login', (req, res) => {
     });
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`✅ Backend Server running at http://localhost:${PORT}`);
-});
+// Start Server Logic for Vercel + Local
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    // Run directly (local)
+    app.listen(PORT, () => {
+        console.log(`✅ Backend Server running at http://localhost:${PORT}`);
+    });
+}
+
+// Export for Vercel
+export default app;

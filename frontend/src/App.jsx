@@ -14,10 +14,10 @@ import {
  * CONFIGURATION & MOCK DATA
  * ==========================================
  */
-const API_URL = "https://your-backend-url.onrender.com/api"; // You will update this later
-// using Wikimedia Commons for stable, high-quality hosting
-const LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/SIBSAGAR_UNIVERSITY.png/480px-SIBSAGAR_UNIVERSITY.png"; 
-const HERO_BG = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Rang_Ghar_Sibsagar.jpg/1280px-Rang_Ghar_Sibsagar.jpg";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = `${API_BASE}/api`; 
+const LOGO_URL = "Logo.png"; // Placeholder Logo
+const HERO_BG = "ranghar.jpg"; // Reliable Wikimedia Link
 
 const CATEGORIES = [
   { id: 'all', label: 'ALL ARCHIVES', icon: Book, labelAs: "সকলো তথ্য", labelHi: "सभी अभिलेखागार" },
