@@ -427,7 +427,23 @@ const App = () => {
   const [savedIds, setSavedIds] = useState([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lang, setLang] = useState('en'); 
-  
+  const fetchItems = async () => {
+      setIsLoading(true);
+      try {
+          console.log(`Fetching from: ${API_URL}/items`);
+          const res = await fetch(`${API_URL}/items`);
+          if (!res.ok) throw new Error(`Server returned ${res.status}`);
+          const data = await res.json();
+          setDbItems(data);
+          setBackendOnline(true);
+      } catch (err) {
+          console.error("Backend Error:", err);
+          setBackendOnline(false);
+          setDbItems(MOCK_ITEMS); // Fallback
+      } finally {
+          setIsLoading(false);
+      }
+  };
   // Data States - Populated via API
   const [dbItems, setDbItems] = useState([]);
   const [resources, setResources] = useState([]);
