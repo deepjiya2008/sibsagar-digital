@@ -11,35 +11,11 @@ const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-/**
- * CORS Configuration
- * Improved to handle local development and Vercel subdomains dynamically.
- */
-const allowedOrigins = [
-    "http://localhost:5173", 
-    "https://sibsagar-digital-frontend.vercel.app", 
-    "https://sibsagar-digital.vercel.app"
-];
-
+// Middleware
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        const isAllowed = allowedOrigins.includes(origin) || 
-                         origin.endsWith(".vercel.app"); // Allow all vercel previews
-        
-        if (isAllowed) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    origin: ["http://localhost:5173", "https://sibsagar-digital-frontend.vercel.app", "https://sibsagar-digital.vercel.app"], 
+    credentials: true
 }));
-
 app.use(bodyParser.json());
 
 // Database Connection (Safe Mode)
@@ -51,7 +27,7 @@ try {
         pool = new Pool({
             connectionString: process.env.DATABASE_URL,
             ssl: { rejectUnauthorized: false },
-            connectionTimeoutMillis: 10000 // Increased timeout for serverless cold starts
+            connectionTimeoutMillis: 5000 // Fail fast if stuck
         });
         console.log("✅ Database pool created.");
     }
@@ -67,11 +43,8 @@ const query = async (text, params) => {
 
 // Root Route (Health Check)
 app.get('/', (req, res) => {
-    res.json({ 
-        status: "Ok", 
-        message: "Backend is running!",
-        dbStatus: pool ? "Connected" : "Disconnected"
-    });
+    if (!pool) return res.status(500).json({ status: "Error", message: "Database connection missing" });
+    res.json({ status: "Ok", message: "Backend is running with PostgreSQL!" });
 });
 
 // Initialize Tables (Lazy Load)
@@ -88,6 +61,7 @@ const initDb = async () => {
     }
 };
 
+// Run init immediately but don't crash
 initDb();
 
 // ================= ROUTES =================
@@ -97,8 +71,8 @@ app.get('/api/items', async (req, res) => {
         const { rows } = await query("SELECT * FROM items ORDER BY year ASC");
         const items = rows.map(row => ({
             ...row,
-            content: typeof row.content === 'string' ? JSON.parse(row.content || '[]') : (row.content || []),
-            infobox: typeof row.infobox === 'string' ? JSON.parse(row.infobox || '[]') : (row.infobox || [])
+            content: JSON.parse(row.content || '[]'),
+            infobox: JSON.parse(row.infobox || '[]')
         }));
         res.json(items);
     } catch (err) {
@@ -191,10 +165,13 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // START SERVER LOGIC
-if (process.env.NODE_ENV !== 'production') {
+// We only call app.listen() if we are NOT in a Vercel environment.
+// Vercel exports the app and handles the server start automatically.
+if (!process.env.VERCEL) {
     app.listen(PORT, () => {
         console.log(`✅ Local Server running at http://localhost:${PORT}`);
     });
 }
 
+// Required for Vercel
 export default app;
