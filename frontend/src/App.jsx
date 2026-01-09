@@ -14,11 +14,12 @@ import {
  * CONFIGURATION & MOCK DATA
  * ==========================================
  */
-// Using a safe access pattern to avoid esbuild warnings in certain environments
+// Using a safe access pattern to avoid esbuild warnings in legacy target environments
 const getEnvUrl = () => {
     try {
         // @ts-ignore
-        return import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const env = import.meta.env;
+        return env?.VITE_API_URL || "http://localhost:5000";
     } catch (e) {
         return "http://localhost:5000";
     }
